@@ -100,7 +100,7 @@ Toko produk digital modern dengan sistem order otomatis, pembayaran QRIS, dan ad
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/username/ramxpremium.git
+git clone https://github.com/ramxcode/ramxpremium.git
 cd ramxpremium
 ```
 

@@ -196,8 +196,12 @@ function openAddStok() {
     + '<select class="form-control" id="stokVar">'
     + '<option value="">-- Pilih Produk dahulu --</option>'
     + '</select></div>'
-    + '<div id="stokDataSingle"><div class="form-group"><label class="form-label">Data / Credentials <span style="color:var(--error)">*</span></label>'
-    + '<input type="text" class="form-control" id="stokContent" placeholder="email:xxx@gmail.com|pass:xxx123"></div></div>'
+    + '<div id="stokDataSingle">'
+    + '<div class="form-group"><label class="form-label">Email / Username <span style="color:var(--error)">*</span></label>'
+    + '<input type="text" class="form-control" id="stokEmail" placeholder="Contoh: user@gmail.com"></div>'
+    + '<div class="form-group"><label class="form-label">Password <span style="color:var(--error)">*</span></label>'
+    + '<input type="text" class="form-control" id="stokPassword" placeholder="Contoh: pass123"></div>'
+    + '</div>'
     + '<div id="stokDataBulk" style="display:none"><div class="form-group"><label class="form-label">Data Stok (1 baris = 1 data)</label>'
     + '<textarea class="form-control" id="stokBulkContent" rows="6" placeholder="email:user1@gmail.com|pass:abc123&#10;email:user2@gmail.com|pass:def456&#10;..." oninput="countBulkStok(this)"></textarea>'
     + '<div id="stokBulkCount" style="font-size:12px;color:var(--text-muted);margin-top:4px">0 data terdeteksi</div></div></div>'
@@ -298,11 +302,20 @@ async function saveStok() {
   var prdId = document.getElementById('stokPrd').value;
   if (!prdId) { showToast('error','Pilih produk terlebih dahulu!'); return; }
   var varId = document.getElementById('stokVar').value;
-  // Cek mode: single atau bulk
   var bulkEl   = document.getElementById('stokDataBulk');
   var isBulk   = bulkEl && bulkEl.style.display !== 'none';
-  var contentEl = isBulk ? document.getElementById('stokBulkContent') : document.getElementById('stokContent');
-  var content   = contentEl ? contentEl.value.trim() : '';
+  var content  = '';
+  if (isBulk) {
+    var bulkContentEl = document.getElementById('stokBulkContent');
+    content = bulkContentEl ? bulkContentEl.value.trim() : '';
+  } else {
+    var email = (document.getElementById('stokEmail') ? document.getElementById('stokEmail').value : '').trim();
+    var pass  = (document.getElementById('stokPassword') ? document.getElementById('stokPassword').value : '').trim();
+    if (email && pass) content = 'Email: ' + email + '\nPassword: ' + pass;
+    else if (email)   content = 'Email: ' + email;
+    else if (pass)    content = 'Password: ' + pass;
+    else              content = (document.getElementById('stokContent') ? document.getElementById('stokContent').value : '').trim();
+  }
   if (!content) { showToast('error','Data stok wajib diisi!'); return; }
   var expiryEl = document.getElementById('stokExpiry');
   var payload  = {
@@ -328,12 +341,32 @@ async function saveStok() {
 function editStok(id) {
   var s = STOCK_ITEMS.find(function(x){ return x.id === id; }); if (!s) return;
   _stokActiveId = id;
+  // Parse existing content back into email/password fields
+  var emailVal = '', passVal = '', remainVal = '';
+  if (s.content) {
+    var cLines = s.content.split('\n');
+    cLines.forEach(function(line) {
+      var lower = line.toLowerCase();
+      if (lower.startsWith('email:') || lower.startsWith('email :')) {
+        emailVal = line.split(':').slice(1).join(':').trim();
+      } else if (lower.startsWith('password:') || lower.startsWith('password :')) {
+        passVal = line.split(':').slice(1).join(':').trim();
+      } else {
+        remainVal += (remainVal ? '\n' : '') + line;
+      }
+    });
+    // Fallback: if no structured format, put raw in remainVal
+    if (!emailVal && !passVal) remainVal = s.content;
+  }
   openModal('Edit Data Stok',
     '<div style="display:grid;gap:12px">'
     + '<div class="form-group"><label class="form-label">Produk &amp; Varian</label>'
     + '<input type="text" class="form-control" value="' + s.productName + ' — ' + s.variantName + '" disabled></div>'
-    + '<div class="form-group"><label class="form-label">Data / Credentials <span style="color:var(--error)">*</span></label>'
-    + '<input type="text" class="form-control" id="editStokContent" value="' + s.content + '"></div>'
+    + '<div class="form-group"><label class="form-label">Email / Username <span style="color:var(--error)">*</span></label>'
+    + '<input type="text" class="form-control" id="editStokEmail" value="' + emailVal + '" placeholder="Contoh: user@gmail.com"></div>'
+    + '<div class="form-group"><label class="form-label">Password <span style="color:var(--error)">*</span></label>'
+    + '<input type="text" class="form-control" id="editStokPassword" value="' + passVal + '" placeholder="Contoh: pass123"></div>'
+    + (remainVal ? '<div class="form-group"><label class="form-label">Data Lain</label><input type="text" class="form-control" id="editStokExtra" value="' + remainVal + '"></div>' : '')
     + '<div class="form-group"><label class="form-label">Catatan</label>'
     + '<input type="text" class="form-control" id="editStokNote" value="' + (s.notes || '') + '" placeholder="Opsional..."></div>'
     + '</div>',
@@ -344,12 +377,27 @@ function editStok(id) {
 
 async function saveEditStok() {
   if (!_stokActiveId) return;
-  var contentEl = document.getElementById('editStokContent');
+  var emailEl   = document.getElementById('editStokEmail');
+  var passEl    = document.getElementById('editStokPassword');
+  var extraEl   = document.getElementById('editStokExtra');
   var noteEl    = document.getElementById('editStokNote');
-  if (!contentEl || !contentEl.value.trim()) { showToast('error', 'Data stok wajib diisi!'); return; }
+  var email = emailEl ? emailEl.value.trim() : '';
+  var pass  = passEl  ? passEl.value.trim()  : '';
+  var extra = extraEl ? extraEl.value.trim()  : '';
+  var content = '';
+  if (email && pass) content = 'Email: ' + email + '\nPassword: ' + pass;
+  else if (email)   content = 'Email: ' + email;
+  else if (pass)    content = 'Password: ' + pass;
+  if (extra)        content += (content ? '\n' : '') + extra;
+  // Fallback: old single field
+  if (!content) {
+    var oldEl = document.getElementById('editStokContent');
+    content = oldEl ? oldEl.value.trim() : '';
+  }
+  if (!content) { showToast('error', 'Data stok wajib diisi!'); return; }
   try {
     const r = await api.stockItems.update(_stokActiveId, {
-      content: contentEl.value.trim(),
+      content: content,
       notes:   noteEl ? noteEl.value : '',
     });
     if (!r.success) { showToast('error', r.message || 'Gagal memperbarui'); return; }

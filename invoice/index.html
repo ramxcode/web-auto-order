@@ -77,11 +77,16 @@ a{color:inherit;text-decoration:none}
 .info-akun-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px}
 .info-akun-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;margin-bottom:16px;color:var(--success)}
 .cred-box{background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
-.cred-inner{flex:1}
-.cred-label{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
-.cred-val{font-size:14px;font-weight:600;color:var(--text);word-break:break-all;font-family:monospace}
-.copy-btn{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:var(--accent-l);font-size:12px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:.2s;font-family:inherit}
+.cred-inner{flex:1;min-width:0}
+.cred-label{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.cred-label i{font-size:11px;color:var(--accent-l)}
+.cred-val{font-size:14px;font-weight:600;color:var(--text);word-break:break-all;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;letter-spacing:.3px}
+.copy-btn{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:var(--accent-l);font-size:12px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:.2s;font-family:inherit;flex-shrink:0}
 .copy-btn:hover{background:rgba(59,130,246,.2)}
+.cred-notes-box{background:rgba(255,180,50,.06);border:1px solid rgba(255,180,50,.18);border-radius:12px;padding:16px 18px;margin-top:4px;margin-bottom:8px}
+.cred-notes-label{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.cred-notes-label i{font-size:11px;color:rgba(255,180,50,.8)}
+.cred-notes-content{font-size:12.5px;color:var(--sub);line-height:1.75;white-space:pre-wrap;word-break:break-word}
 .terms-box{background:rgba(59,130,246,.04);border:1px solid rgba(59,130,246,.12);border-radius:12px;padding:14px 16px;font-size:12px;color:var(--sub);line-height:1.8;white-space:pre-wrap}
 .txn-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px}
 .txn-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--sub)}
@@ -396,6 +401,17 @@ function _renderCredentials(data, id, invToken, authTok){
   var notes=data.credentialNotes||'';
   var terms=data.termsAndConditions||'';
   var html='<div class="info-akun-card"><div class="info-akun-title"><i class="fa-solid fa-lock-open"></i> Data Produk</div>';
+
+  // Icon mapping berdasarkan label
+  var _credIcon=function(label){
+    var l=(label||'').toLowerCase();
+    if(l.indexOf('email')>-1||l.indexOf('username')>-1||l.indexOf('user')>-1||l.indexOf('akun')>-1) return 'fa-envelope';
+    if(l.indexOf('password')>-1||l.indexOf('pass')>-1||l.indexOf('pin')>-1||l.indexOf('sandi')>-1) return 'fa-lock';
+    if(l.indexOf('link')>-1||l.indexOf('url')>-1) return 'fa-link';
+    if(l.indexOf('kode')>-1||l.indexOf('code')>-1||l.indexOf('key')>-1||l.indexOf('lisensi')>-1||l.indexOf('license')>-1) return 'fa-key';
+    return 'fa-circle-dot';
+  };
+
   if(cred){
     // Render credential lines dynamically
     var lines=cred.split('\n').filter(function(l){return l.trim();});
@@ -404,17 +420,21 @@ function _renderCredentials(data, id, invToken, authTok){
       var label=parts.length>1?parts.shift().trim():'Kredensial';
       var val=parts.join(':').trim()||line;
       var safeVal=esc(val); var safeLabel=esc(label);
-      html+='<div class="cred-box"><div class="cred-inner"><div class="cred-label">'+safeLabel+'</div><div class="cred-val">'+safeVal+'</div></div>';
-      html+='<button class="copy-btn" onclick="_copyTxt(this.dataset.c,this)" data-c="'+safeVal+'"><i class="fa-solid fa-copy"></i> Salin</button></div>';
+      var icon=_credIcon(label);
+      html+='<div class="cred-box"><div class="cred-inner"><div class="cred-label"><i class="fa-solid '+icon+'"></i> '+safeLabel+'</div><div class="cred-val">'+safeVal+'</div></div>';
+      html+='<button class="copy-btn" onclick="_copyTxt(this.dataset.c,this)" data-c="'+safeVal+'"><i class="fa-solid fa-copy"></i></button></div>';
     });
     if(lines.length===0){
-      html+='<div class="cred-box"><div class="cred-inner"><div class="cred-label">Kredensial Akun</div><div class="cred-val">'+esc(cred)+'</div></div>';
-      html+='<button class="copy-btn" onclick="_copyTxt(this.dataset.c,this)" data-c="'+esc(cred)+'"><i class="fa-solid fa-copy"></i> Salin</button></div>';
+      html+='<div class="cred-box"><div class="cred-inner"><div class="cred-label"><i class="fa-solid fa-circle-dot"></i> Kredensial Akun</div><div class="cred-val">'+esc(cred)+'</div></div>';
+      html+='<button class="copy-btn" onclick="_copyTxt(this.dataset.c,this)" data-c="'+esc(cred)+'"><i class="fa-solid fa-copy"></i></button></div>';
     }
   }else{
     html+='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Produk belum tersedia. Silakan hubungi CS.</div>';
   }
-  if(notes)html+='<div class="terms-box" style="margin-top:8px"><i class="fa-solid fa-circle-info" style="color:var(--accent-l);margin-right:6px"></i>'+esc(notes)+'</div>';
+  // Catatan — tampil sebagai card terpisah dengan icon notepad
+  if(notes){
+    html+='<div class="cred-notes-box"><div class="cred-notes-label"><i class="fa-solid fa-note-sticky"></i> CATATAN</div><div class="cred-notes-content">'+esc(notes)+'</div></div>';
+  }
   if(terms)html+='<div class="terms-box"><i class="fa-solid fa-circle-info" style="color:var(--accent-l);margin-right:6px"></i>'+esc(terms)+'</div>';
   html+='</div>';
   sec.innerHTML=html;
